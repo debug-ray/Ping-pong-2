@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ping Pong Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+        }
+        #game-container {
+            position: relative;
+            width: 1000px;
+            height: 500px;
+            background-color: #111;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        #player-paddle, #cpu-paddle {
+            position: absolute;
+            width: 10px;
+            height: 100px;
+            background-color: #fff;
+        }
+        #ball {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #fff;
+            border-radius: 50%;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: calc(50% - 50px);
+            font-size: 24px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="player-paddle" style="top: 200px; left: 10px;"></div>
+        <div id="cpu-paddle" style="top: 200px; left: 980px;"></div>
+        <div id="ball" style="top: 240px; left: 490px;"></div>
+        <div id="score">Player: 0 CPU: 0</div>
+    </div>
+    <audio id="hitSound">
+        <source src="hit.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <script>
+        const playerPaddle = document.getElementById('player-paddle');
+        const cpuPaddle = document.getElementById('cpu-paddle');
+        const ball = document.getElementById('ball');
+        const gameContainer = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        const hitSound = document.getElementById('hitSound');
+
+        let playerPaddleY = 200;
+        let cpuPaddleY = 200;
+        let ballX = 490;
+        let ballY = 240;
+        let ballSpeedX = 5;
+        let ballSpeedY = 3;
+        let paddleSpeed = 4;
+        let playerScore = 0;
+        let cpuScore = 0;
+        let cpuLevel = 'easy';
+
+        function updateGame() {
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
+
+            if (ballY < 0 || ballY > gameContainer.clientHeight - ball.clientHeight) {
+                ballSpeedY = -ballSpeedY;
+            }
+
+            if (ballX <= 15 && ballY >= playerPaddleY && ballY <= playerPaddleY + 100) {
+                ballSpeedX = -ballSpeedX;
+                playHitSound();
+            }
+
+            if (ballX >= gameContainer.clientWidth - 25 && ballY >= cpuPaddleY && ballY <= cpuPaddleY + 100) {
+                ballSpeedX = -ballSpeedX;
+                playHitSound();
+            }
+
+            if (ballX < 0) {
+                cpuScore++;
+                resetBall();
+            } else if (ballX > gameContainer.clientWidth) {
+                playerScore++;
+                resetBall();
+
+                if (playerScore % 5 === 0) {
+                    changeCpuLevel();
+                }
+            }
+
+            gameContainer.addEventListener('mousemove', (event) => {
+                const mouseY = event.clientY - gameContainer.getBoundingClientRect().top - playerPaddle.clientHeight / 2;
+                if (mouseY >= 0 && mouseY <= gameContainer.clientHeight - playerPaddle.clientHeight) {
+                    playerPaddleY = mouseY;
+                }
+            });
+
+            moveCpuPaddle();
+
+            playerPaddle.style.top = playerPaddleY + 'px';
+            cpuPaddle.style.top = cpuPaddleY + 'px';
+
+            ball.style.left = ballX + 'px';
+            ball.style.top = ballY + 'px';
+
+            scoreElement.textContent = `Player: ${playerScore} CPU: ${cpuScore}`;
+
+            if (playerScore >= 10 || cpuScore >= 10) {
+                gameOver();
+            } else {
+                requestAnimationFrame(updateGame);
+            }
+        }
+
+        function resetBall() {
+            ballX = 490;
+            ballY = 240;
+            ballSpeedX = -ballSpeedX;
+        }
+
+        function gameOver() {
+            if (playerScore > cpuScore) {
+                alert('Player wins!');
+            } else {
+                alert('CPU wins!');
+            }
+            location.reload(); 
+        }
+
+        function playHitSound() {
+            hitSound.currentTime = 0;
+            hitSound.play();
+        }
+
+        function changeCpuLevel() {
+            switch (cpuLevel) {
+                case 'easy':
+                    cpuLevel = 'medium';
+                    break;
+                case 'medium':
+                    cpuLevel = 'easy';
+                    break;
+                case 'hard':
+                    cpuLevel = 'easy';
+                    break;
+                default:
+                    cpuLevel = 'easy';
+                    break;
+            }
+        }
+
+        function moveCpuPaddle() {
+            
+            switch (cpuLevel) {
+                case 'easy':
+                    
+                    const centerY = cpuPaddleY + cpuPaddle.clientHeight / 2;
+                    if (centerY < ballY && cpuPaddleY < gameContainer.clientHeight - cpuPaddle.clientHeight) {
+                        cpuPaddleY += paddleSpeed;
+                    } else if (centerY > ballY && cpuPaddleY > 0) {
+                        cpuPaddleY -= paddleSpeed;
+                    }
+                    break;
+                case 'medium':
+                    const randomMovement = Math.random() * 10;
+                    if (randomMovement < 5 && cpuPaddleY >= 0) {
+                        cpuPaddleY -= paddleSpeed;
+                    } else if (cpuPaddleY <= gameContainer.clientHeight - cpuPaddle.clientHeight) {
+                        cpuPaddleY += paddleSpeed;
+                    }
+                    break;
+                case 'hard':
+                    if (cpuPaddleY + 50 < ballY && cpuPaddleY < gameContainer.clientHeight - cpuPaddle.clientHeight) {
+                        cpuPaddleY += paddleSpeed;
+                    } else if (cpuPaddleY + 50 > ballY && cpuPaddleY > 0) {
+                        cpuPaddleY -= paddleSpeed;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        requestAnimationFrame(updateGame);
+    </script>
+</body>
+</html>
